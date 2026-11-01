@@ -88,6 +88,12 @@ notes.
 See [`LICENSE`](./LICENSE) for the full summary.
 <!-- /bichal:license -->
 
+## Credit
+
+Velox is made by Bichal. If you use, modify, or redistribute Velox, or build on it, keep this credit and name Bichal as the original author. This requirement is an additional term under section 7 of the AGPL-3.0.
+
+Want to use Velox in a closed-source or commercial project? Contact Bichal for a separate commercial license.
+
 <!-- publish:on -->
 
 ---
