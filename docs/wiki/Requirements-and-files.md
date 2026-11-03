@@ -12,12 +12,12 @@ Players do not need to install Velox.
 
 | Minecraft version | File |
 |---|---|
-| 1.21 to 1.21.6 | `velox-0.1.0+1.21.1.jar` |
-| 1.21.7 to 1.21.10 | `velox-0.1.0+1.21.10.jar` |
-| 1.21.11 | `velox-0.1.0+1.21.11.jar` |
-| 26.1 to 26.3 | `velox-0.1.0+26.1.jar` |
+| 1.21 to 1.21.6 | `velox-0.1.1+1.21.1.jar` |
+| 1.21.7 to 1.21.10 | `velox-0.1.1+1.21.10.jar` |
+| 1.21.11 | `velox-0.1.1+1.21.11.jar` |
+| 26.1 to 26.3 | `velox-0.1.1+26.1.jar` |
 
-**Example:** Your server runs Minecraft 1.21.5. That is in the first row, so use `velox-0.1.0+1.21.1.jar`.
+**Example:** Your server runs Minecraft 1.21.5. That is in the first row, so use `velox-0.1.1+1.21.1.jar`.
 
 Every file was checked against vanilla on each version in its row. A test server ran Velox and vanilla side by side, and every item had to move exactly as it does in vanilla.
 
