@@ -15,6 +15,7 @@ val modProps = extensions.getByType(BichalModExtension::class.java).props
 val mainSourceSet = sourceSets.main.get()
 val runDir = rootProject.file("versions/${modProps.currentVersion}/run")
 val parityDir = rootProject.file("versions/${modProps.currentVersion}/run-parity")
+val parityJavaDir = rootProject.file("versions/${modProps.currentVersion}/run-parity-java")
 
 neoForge {
     runs {
@@ -44,17 +45,27 @@ neoForge {
             // CI checks the native kernel too: it is opt-in for players, so ask for it here.
             systemProperty("velox.nativeKernel", "true")
         }
+
+        // The same check on Celeris's Java kernel: what players get by default.
+        register("parityJava") {
+            server()
+            gameDirectory = parityJavaDir
+            programArgument("--nogui")
+            systemProperty("velox.parity", "true")
+            systemProperty("celeris.physics.engine", "java")
+        }
     }
 }
 
-listOf(runDir, parityDir).forEach { if (!it.exists()) it.mkdirs() }
+listOf(runDir, parityDir, parityJavaDir).forEach { if (!it.exists()) it.mkdirs() }
 
 // A fresh flat world for every check. The EULA is accepted for this throwaway
 // test server only; each Minecraft version gets its own port (they may run in parallel).
 val parityPort = 25600 + (modProps.currentVersion.hashCode() and 0x1ff)
-val prepareParity = tasks.register("prepareParity") {
-    val dir = parityDir
-    val port = parityPort
+
+fun registerPrepare(taskName: String, runDirectory: File, serverPort: Int) = tasks.register(taskName) {
+    val dir = runDirectory
+    val port = serverPort
     doLast {
         dir.resolve("world").deleteRecursively()
         dir.resolve("velox-parity.txt").delete()
@@ -77,31 +88,51 @@ val prepareParity = tasks.register("prepareParity") {
     }
 }
 
+val prepareParity = registerPrepare("prepareParity", parityDir, parityPort)
+// A second range of ports, so the two checks never collide with each other or with another version's.
+val prepareParityJava = registerPrepare("prepareParityJava", parityJavaDir, 26112 + (modProps.currentVersion.hashCode() and 0x1ff))
+
 tasks.matching { it.name == "runParity" }.configureEach { dependsOn(prepareParity) }
+tasks.matching { it.name == "runParityJava" }.configureEach {
+    dependsOn(prepareParityJava)
+    mustRunAfter("runParity")
+}
 
 tasks.register("parity") {
     group = "verification"
-    description = "Runs Velox and vanilla side by side on a headless server and compares every item, every tick."
-    dependsOn("runParity")
-    val report = parityDir.resolve("velox-parity.txt")
-    val serverLog = parityDir.resolve("logs/latest.log")
+    description = "Runs Velox and vanilla side by side on a headless server and compares every item, every tick, with Celeris's native kernel and with its Java kernel."
+    dependsOn("runParity", "runParityJava")
+    val checks = listOf(
+        Triple("native kernel", parityDir, true),
+        Triple("Java kernel", parityJavaDir, false),
+    )
     doLast {
-        if (!report.isFile) {
-            throw GradleException("Velox parity: no report in $report (the server stopped before the check ended)")
-        }
-        val text = report.readText()
-        println(text)
-        if (!text.lineSequence().first().endsWith("PASS")) {
-            throw GradleException("Velox parity failed: see $report")
-        }
-        // With the right JVM flags players get Celeris's native kernel, so CI checks
-        // that one: a fall back to the Java kernel (JVM flags, a library that did not
-        // load) must not pass unnoticed. Locally it is only reported.
         val kernelLine = Regex("""Velox: items simulated by Celeris \(([^)]+)\).*""")
-        val kernel = if (serverLog.isFile) serverLog.useLines { lines -> lines.firstNotNullOfOrNull { kernelLine.find(it) } } else null
-        println("Kernel: ${kernel?.value ?: "not logged"}")
-        if (System.getenv("CI") == "true" && kernel?.groupValues?.get(1)?.startsWith("native") != true) {
-            throw GradleException("Velox parity ran without Celeris's native kernel: see $serverLog")
+        for ((label, dir, wantNative) in checks) {
+            val report = dir.resolve("velox-parity.txt")
+            val serverLog = dir.resolve("logs/latest.log")
+            if (!report.isFile) {
+                throw GradleException("Velox parity ($label): no report in $report (the server stopped before the check ended)")
+            }
+            val text = report.readText()
+            println("== Parity, $label ==")
+            println(text)
+            if (!text.lineSequence().first().endsWith("PASS")) {
+                throw GradleException("Velox parity failed on the $label: see $report")
+            }
+            val kernel = if (serverLog.isFile) serverLog.useLines { lines -> lines.firstNotNullOfOrNull { kernelLine.find(it) } } else null
+            println("Kernel ($label): ${kernel?.value ?: "not logged"}")
+            val engine = kernel?.groupValues?.get(1)
+            if (wantNative) {
+                // With the right JVM flags players can get Celeris's native kernel, so CI checks that one: a
+                // fall back to the Java kernel (JVM flags, a library that did not load) must not pass
+                // unnoticed. Locally it is only reported.
+                if (System.getenv("CI") == "true" && engine?.startsWith("native") != true) {
+                    throw GradleException("Velox parity ran without Celeris's native kernel: see $serverLog")
+                }
+            } else if (engine != "java") {
+                throw GradleException("Velox parity was meant to run on the Java kernel but ran on ${engine ?: "no logged kernel"}: see $serverLog")
+            }
         }
     }
 }

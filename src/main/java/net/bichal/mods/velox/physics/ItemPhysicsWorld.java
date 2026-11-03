@@ -68,6 +68,9 @@ public final class ItemPhysicsWorld implements AutoCloseable {
     private static final double RESULT_REACH = 9.0;
     private boolean windowPlaced;
     private boolean closed;
+    /** For {@code /velox status}: items the engine left to the normal game, and the step's duration. */
+    private int lastDeferred;
+    private long lastStepNanos;
 
     private ItemPhysicsWorld(ServerLevel level) {
         this.level = level;
@@ -157,6 +160,40 @@ public final class ItemPhysicsWorld implements AutoCloseable {
         blockers.remove(entity);
     }
 
+    /** The physics was closed (normally, or by {@link VeloxFailsafe}): no result may be applied. */
+    public boolean isClosed() {
+        return closed;
+    }
+
+    /** Items in the batch. */
+    public int size() {
+        return closed ? 0 : batch.size();
+    }
+
+    public int capacity() {
+        return bySlot.length;
+    }
+
+    /** Items that applied the batch's result in the last tick (the flags are reset when the next step starts). */
+    public int appliedCount() {
+        int count = 0;
+        for (int slot = 0, n = size(); slot < n; slot++) {
+            if (applied[slot]) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    /** Items the engine handed back to the normal game in the last step. */
+    public int lastDeferred() {
+        return lastDeferred;
+    }
+
+    public double lastStepMillis() {
+        return lastStepNanos / 1.0E6;
+    }
+
     public void tick() {
         int n = batch.size();
         if (closed || n == 0) {
@@ -177,12 +214,15 @@ public final class ItemPhysicsWorld implements AutoCloseable {
         step++;
         maskBlockers();
         int deferred;
+        long started = System.nanoTime();
         try {
             deferred = bridge.tick(terrain, McCompat.MOVE_RULES);
             resultsLive = true;
         } finally {
             unmaskBlockers();
         }
+        lastStepNanos = System.nanoTime() - started;
+        lastDeferred = deferred;
         requestSections(deferred);
         fillSections();
     }
@@ -373,8 +413,10 @@ public final class ItemPhysicsWorld implements AutoCloseable {
         closed = true;
         for (int slot = 0; slot < batch.size(); slot++) {
             VeloxBody body = (VeloxBody) bySlot[slot];
-            body.velox$setSlot(-1);
-            body.velox$setOwner(null);
+            if (body != null) {
+                body.velox$setSlot(-1);
+                body.velox$setOwner(null);
+            }
         }
         bridge.close();
         terrain.close();

@@ -16,7 +16,8 @@ Players do not need to install anything. Velox runs on the server only.
 1. [Requirements and files](Requirements-and-files): install the right file, and Celeris.
 2. [Settings](Settings): the options, with examples.
 3. [Troubleshooting](Troubleshooting): what the log says, and what to do.
-4. [Benchmarks](Benchmarks): measured results.
+4. [Compatibility](Compatibility): how Velox behaves next to other mods.
+5. [Benchmarks](Benchmarks): measured results.
 
 **I want to know how it works.** Read [How it works](How-it-works).
 

@@ -11,6 +11,7 @@ Start with the log. Velox writes lines when it starts, and each line says what i
 | `Velox: items simulated by Celeris (java)` | Velox works, with the Java kernel. This is the default. | Nothing. The server tick is the same as with the native kernel in our tests. To try the native kernel, add `-Dvelox.nativeKernel=true`. See [Requirements and files](Requirements-and-files). |
 | `Velox: items simulated by Celeris (native-jni-avx2)` | Velox works, with the native kernel (you asked for it with `-Dvelox.nativeKernel=true`). The name in the brackets can differ on your computer. | Nothing. |
 | `Velox: item physics for minecraft:overworld on java (capacity 32768)` | Velox started handling that world. The capacity is the most items it handles there. | Nothing. |
+| `Velox: switched OFF after an error in ...` | Velox hit an error, most likely a clash with another mod, and switched itself off. The server keeps running with the normal game physics. | See [Velox switched itself off](#velox-switched-itself-off) below. |
 
 ## Common problems
 
@@ -35,6 +36,18 @@ Velox is only supported on the versions listed in [Requirements and files](Requi
 ### Velox says Celeris is missing
 
 Velox needs Celeris 0.3.1.1 or newer, on the server. Without it NeoForge stops the server while it loads mods, with a missing-dependency error, so Velox never gets to write a log line. Install Celeris, then restart the server.
+
+### Velox switched itself off
+
+If anything in Velox throws an error, Velox does not stop the server. It switches itself off for the rest of the session, gives every item back to the normal game, and writes lines that start with `Velox:` to the log, with the full error. After a restart it tries again.
+
+1. Find the line `Velox: switched OFF after an error in ...`. The next lines list the packages of other mods that appear in the error. One of them may clash with Velox.
+2. If the clash comes from one mod's dropped items, add that mod to `excludedItems` (see [Settings](Settings)), for example `somemod:*`.
+3. If it keeps happening, [open an issue](https://github.com/bichal/Velox/issues) with that part of the log. Until it is fixed you can set `enabled = false`.
+
+### How do I see what Velox is doing?
+
+Run `/velox status`. Operators can use it in the game and anyone can use it from the console. It shows whether Velox is running, which Celeris kernel it uses, and for each dimension how many items it handles, how many took the batch result in the last tick, and how long the step took. After an error it shows that Velox switched itself off, and why. Include its output when you report a problem.
 
 ## Frequently asked questions
 

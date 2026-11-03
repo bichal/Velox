@@ -1,6 +1,7 @@
 package net.bichal.mods.velox.mixin;
 
 import net.bichal.mods.velox.physics.ItemPhysicsWorld;
+import net.bichal.mods.velox.physics.VeloxFailsafe;
 import net.bichal.mods.velox.physics.VeloxLevel;
 import net.minecraft.server.level.ServerLevel;
 import org.spongepowered.asm.mixin.Mixin;
@@ -37,7 +38,11 @@ public abstract class ServerLevelMixin implements VeloxLevel {
     private void velox$stepItems(BooleanSupplier hasTimeLeft, CallbackInfo ci) {
         ItemPhysicsWorld world = velox$physics;
         if (world != null) {
-            world.tick();
+            try {
+                world.tick();
+            } catch (RuntimeException | LinkageError error) {
+                VeloxFailsafe.trip("the item physics step", error);
+            }
         }
     }
 
@@ -47,7 +52,11 @@ public abstract class ServerLevelMixin implements VeloxLevel {
     private void velox$entitiesTicked(BooleanSupplier hasTimeLeft, CallbackInfo ci) {
         ItemPhysicsWorld world = velox$physics;
         if (world != null) {
-            world.entitiesTicked();
+            try {
+                world.entitiesTicked();
+            } catch (RuntimeException | LinkageError error) {
+                VeloxFailsafe.trip("the end of the item physics step", error);
+            }
         }
     }
 }

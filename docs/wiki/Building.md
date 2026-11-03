@@ -21,7 +21,7 @@ The jars are written to `build/libs/`, in a folder named after the version.
 ## Other useful tasks
 
 - `./gradlew build` builds the mod and runs the tests.
-- `./gradlew parity` runs the check against vanilla that CI runs. It starts a headless server, and compares every item on every tick. Run it after you change the physics code.
+- `./gradlew parity` runs the check against vanilla that CI runs. It starts a headless server twice, once with Celeris's native kernel and once with its Java kernel (the one players get by default), and compares every item on every tick. Run it after you change the physics code.
 
 ## Use a local copy of Celeris
 

@@ -1,6 +1,7 @@
 package net.bichal.mods.velox.mixin;
 
 import net.bichal.mods.velox.physics.ItemPhysicsWorld;
+import net.bichal.mods.velox.physics.VeloxFailsafe;
 import net.bichal.mods.velox.physics.VeloxLevel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.Level;
@@ -48,7 +49,11 @@ public abstract class LevelChunkMixin {
         if (old != null && getLevel() instanceof VeloxLevel holder) {
             ItemPhysicsWorld world = holder.velox$physics();
             if (world != null) {
-                world.onBlockChanged(pos, old, state);
+                try {
+                    world.onBlockChanged(pos, old, state);
+                } catch (RuntimeException | LinkageError error) {
+                    VeloxFailsafe.trip("a block change", error);
+                }
             }
         }
     }

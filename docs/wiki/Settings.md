@@ -7,7 +7,7 @@ Velox reads one file. Change a value, save the file, and restart the server.
 
 The file has a comment above each option. On the first start, Velox writes it with the default values.
 
-## The four options
+## The five options
 
 | Option | Default | Allowed values | What it does |
 |---|---|---|---|
@@ -15,6 +15,7 @@ The file has a comment above each option. On the first start, Velox writes it wi
 | `maxItemsPerLevel` | `32768` | 1024 to 1048576 | The most items per world (dimension) that Velox handles. Items above this number keep the normal game physics. |
 | `windowSections` | `48` | 8 to 256 | How wide an area of terrain, around the items, Velox copies. Sections are 16 blocks wide, so 48 covers 768 blocks. Items outside the area keep the normal game physics. The area follows the main group of items. |
 | `sectionFillsPerTick` | `256` | 1 to 4096 | How many terrain sections Velox copies each tick. A higher number fills the area faster. |
+| `excludedItems` | empty | item ids separated by commas | Items that always keep the normal game physics. Use `modid:*` for every item of a mod. Checked when an item drops. |
 
 ## Examples
 
@@ -52,6 +53,14 @@ sectionFillsPerTick = 1024
 
 Items join Velox sooner, because the area fills faster. In our tests with 100,000 falling items, 1024 was the fastest of the values we tried.
 
+### One mod's items clash with Velox
+
+```toml
+excludedItems = "create:chromatic_compound, somemod:*"
+```
+
+The first entry is one item; the second is every item of the mod `somemod`. Items dropped after the change keep the normal game physics. Use this when one mod's items cause a problem and you want to keep Velox for everything else. Names without a mod, such as `diamond`, count as `minecraft:diamond`.
+
 ## Which option when
 
 | What you see | Try this |
@@ -60,3 +69,4 @@ Items join Velox sooner, because the area fills faster. In our tests with 100,00
 | Many items, but some stay on normal physics | Raise `maxItemsPerLevel`. |
 | Items spread over a big area use normal physics | Raise `windowSections`. |
 | Items take a while to join Velox after they fall | Raise `sectionFillsPerTick`. |
+| One mod's items misbehave | Add them to `excludedItems`. |

@@ -9,6 +9,7 @@ public final class VeloxConfig {
     public static final ModConfigSpec.IntValue MAX_ITEMS_PER_LEVEL;
     public static final ModConfigSpec.IntValue WINDOW_SECTIONS;
     public static final ModConfigSpec.IntValue SECTION_FILLS_PER_TICK;
+    public static final ModConfigSpec.ConfigValue<String> EXCLUDED_ITEMS;
 
     static {
         ModConfigSpec.Builder b = new ModConfigSpec.Builder();
@@ -22,6 +23,10 @@ public final class VeloxConfig {
                 .defineInRange("windowSections", 48, 8, 256);
         SECTION_FILLS_PER_TICK = b.comment("Chunk sections copied into the terrain snapshot per tick.")
                 .defineInRange("sectionFillsPerTick", 256, 1, 4096);
+        EXCLUDED_ITEMS = b.comment("Items that always keep vanilla physics, separated by commas: item ids such as",
+                        "\"create:chromatic_compound\", or \"modid:*\" for every item of a mod. Checked when an item",
+                        "drops, so a change affects items dropped after it. Use it when one mod's items clash with Velox.")
+                .define("excludedItems", "");
         SPEC = b.build();
     }
 

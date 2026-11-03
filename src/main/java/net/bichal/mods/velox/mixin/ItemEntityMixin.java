@@ -10,6 +10,7 @@ import net.bichal.mods.velox.physics.ItemPhysicsWorld;
 import net.bichal.mods.velox.physics.McCompat;
 import net.bichal.mods.velox.physics.MovementRecorder;
 import net.bichal.mods.velox.physics.VeloxBody;
+import net.bichal.mods.velox.physics.VeloxFailsafe;
 import net.minecraft.core.BlockPos;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
@@ -64,12 +65,16 @@ public abstract class ItemEntityMixin extends Entity implements VeloxBody {
             target = "Lnet/minecraft/world/entity/item/ItemEntity;applyGravity()V"))
     private boolean velox$replacePhysics(ItemEntity self) {
         ItemPhysicsWorld world = velox$owner;
-        if (world == null || velox$slot < 0 || velox$simulatedStep != world.step()) {
+        if (world == null || velox$slot < 0 || velox$simulatedStep != world.step() || world.isClosed()) {
             return true;
         }
         velox$applying = true;
         try {
             velox$apply(world.batch(), velox$slot);
+        } catch (RuntimeException | LinkageError error) {
+            // Most likely another mod changing the same code: switch Velox off, let vanilla tick this item.
+            VeloxFailsafe.trip("applying a result to an item", error);
+            return true;
         } finally {
             velox$applying = false;
         }
@@ -130,11 +135,17 @@ public abstract class ItemEntityMixin extends Entity implements VeloxBody {
     @Override
     public java.util.Optional<BlockPos> velox$knownSupport(AABB box) {
         ItemPhysicsWorld world = velox$owner;
-        if (!velox$applying || world == null) {
+        if (!velox$applying || world == null || world.isClosed()) {
             return null;
         }
-        int found = TerrainQuery.support(world.terrain(), box.minX, box.minY, box.minZ, box.maxX, box.maxY, box.maxZ,
-                getX(), getY(), getZ(), velox$support);
+        int found;
+        try {
+            found = TerrainQuery.support(world.terrain(), box.minX, box.minY, box.minZ, box.maxX, box.maxY, box.maxZ,
+                    getX(), getY(), getZ(), velox$support);
+        } catch (RuntimeException | LinkageError error) {
+            VeloxFailsafe.trip("reading the terrain snapshot", error);
+            return null;
+        }
         if (found == TerrainQuery.UNKNOWN) {
             return null;
         }
@@ -149,14 +160,19 @@ public abstract class ItemEntityMixin extends Entity implements VeloxBody {
     @Override
     public boolean velox$insideBlocksInert(java.util.List<?> movements) {
         ItemPhysicsWorld world = velox$owner;
-        if (!velox$applied || world == null || !McCompat.ITEM_INSIDE_HOOK_FREE
+        if (!velox$applied || world == null || world.isClosed() || !McCompat.ITEM_INSIDE_HOOK_FREE
                 || !MovementRecorder.hull(movements, getBbWidth(), getBbHeight(), velox$hull)) {
             return false;
         }
         // Vanilla walks the box deflated by 1.0E-5; 1.0E-7 still covers every block it visits.
         double[] h = velox$hull;
         double e = 1.0E-7;
-        return TerrainQuery.modelled(world.terrain(), h[0] + e, h[1] + e, h[2] + e, h[3] - e, h[4] - e, h[5] - e);
+        try {
+            return TerrainQuery.modelled(world.terrain(), h[0] + e, h[1] + e, h[2] + e, h[3] - e, h[4] - e, h[5] - e);
+        } catch (RuntimeException | LinkageError error) {
+            VeloxFailsafe.trip("reading the terrain snapshot", error);
+            return false;
+        }
     }
 
     @Override
@@ -291,7 +307,11 @@ public abstract class ItemEntityMixin extends Entity implements VeloxBody {
             // A result computed before this write is stale: run vanilla this
             // tick (if not ticked yet) and re-read the entity next step.
             velox$simulatedStep = -1;
-            velox$owner.markDirty((ItemEntity) (Object) this);
+            try {
+                velox$owner.markDirty((ItemEntity) (Object) this);
+            } catch (RuntimeException | LinkageError error) {
+                VeloxFailsafe.trip("tracking an item moved by another mod", error);
+            }
         }
     }
 }

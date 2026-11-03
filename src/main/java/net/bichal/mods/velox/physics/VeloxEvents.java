@@ -12,6 +12,7 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.neoforged.bus.api.EventPriority;
 import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.neoforge.event.RegisterCommandsEvent;
 import net.neoforged.neoforge.event.TagsUpdatedEvent;
 import net.neoforged.neoforge.event.entity.EntityJoinLevelEvent;
 import net.neoforged.neoforge.event.entity.EntityLeaveLevelEvent;
@@ -31,13 +32,20 @@ public final class VeloxEvents {
 
     public static void register() {
         // LOWEST and not receiving cancelled events: only entities that really join are registered.
-        NeoForge.EVENT_BUS.addListener(EventPriority.LOWEST, false, EntityJoinLevelEvent.class, VeloxEvents::onJoin);
-        NeoForge.EVENT_BUS.addListener(EntityLeaveLevelEvent.class, VeloxEvents::onLeave);
-        NeoForge.EVENT_BUS.addListener(ChunkEvent.Unload.class, VeloxEvents::onChunkUnload);
-        NeoForge.EVENT_BUS.addListener(LevelEvent.Unload.class, VeloxEvents::onLevelUnload);
+        // Every handler runs under the failsafe: an error switches Velox off instead of reaching the game.
+        NeoForge.EVENT_BUS.addListener(EventPriority.LOWEST, false, EntityJoinLevelEvent.class,
+                e -> VeloxFailsafe.run("an item entering the world", () -> onJoin(e)));
+        NeoForge.EVENT_BUS.addListener(EntityLeaveLevelEvent.class,
+                e -> VeloxFailsafe.run("an item leaving the world", () -> onLeave(e)));
+        NeoForge.EVENT_BUS.addListener(ChunkEvent.Unload.class,
+                e -> VeloxFailsafe.run("a chunk unloading", () -> onChunkUnload(e)));
+        NeoForge.EVENT_BUS.addListener(LevelEvent.Unload.class,
+                e -> VeloxFailsafe.run("a level unloading", () -> onLevelUnload(e)));
+        NeoForge.EVENT_BUS.addListener(RegisterCommandsEvent.class, VeloxCommands::onRegister);
         NeoForge.EVENT_BUS.addListener(ServerStartedEvent.class, e -> engineAvailable());
         NeoForge.EVENT_BUS.addListener(ServerStoppedEvent.class, VeloxEvents::onServerStopped);
-        NeoForge.EVENT_BUS.addListener(TagsUpdatedEvent.class, VeloxEvents::onTagsUpdated);
+        NeoForge.EVENT_BUS.addListener(TagsUpdatedEvent.class,
+                e -> VeloxFailsafe.run("a datapack reload", () -> onTagsUpdated(e)));
     }
 
     /**
@@ -47,6 +55,9 @@ public final class VeloxEvents {
      * load, and {@link #nativeKernelHint()} says which flag would change that.
      */
     static boolean engineAvailable() {
+        if (VeloxFailsafe.tripped()) {
+            return false;
+        }
         Boolean a = available;
         if (a == null) {
             if (!VeloxConfig.ENABLED.get()) {
@@ -102,7 +113,8 @@ public final class VeloxEvents {
     /** Plain vanilla items only: subclasses from other mods may move differently. */
     static boolean eligible(Entity entity) {
         return entity.getClass() == ItemEntity.class && !entity.isPassenger() && !entity.isNoGravity()
-                && entity.getGravity() == 0.04 && !ParityHarness.isControl(entity);
+                && entity.getGravity() == 0.04 && !ParityHarness.isControl(entity)
+                && !VeloxExclusions.excluded((ItemEntity) entity);
     }
 
     private static void onJoin(EntityJoinLevelEvent event) {
