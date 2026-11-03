@@ -98,12 +98,12 @@ public final class ItemPhysicsWorld implements AutoCloseable {
         return batch;
     }
 
-    /** Id of the current step; entities stamped with it apply the batch's result. */
     /** The terrain snapshot the batch collides against. */
     public TerrainView terrain() {
         return terrain;
     }
 
+    /** Id of the current step; entities stamped with it apply the batch's result. */
     public long step() {
         return step;
     }

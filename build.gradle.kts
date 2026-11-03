@@ -41,6 +41,8 @@ neoForge {
             gameDirectory = parityDir
             programArgument("--nogui")
             systemProperty("velox.parity", "true")
+            // CI checks the native kernel too: it is opt-in for players, so ask for it here.
+            systemProperty("velox.nativeKernel", "true")
         }
     }
 }

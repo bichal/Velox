@@ -77,7 +77,8 @@ public final class VeloxEvents {
      * that ALL-UNNAMED does not cover. Java 25 needs neither.
      */
     private static String nativeKernelHint() {
-        if (Runtime.version().feature() != 21 || CelerisPhysics.engineName().startsWith("native")
+        if (!Boolean.getBoolean(Velox.NATIVE_KERNEL_PROPERTY)
+                || Runtime.version().feature() != 21 || CelerisPhysics.engineName().startsWith("native")
                 || "java".equalsIgnoreCase(System.getProperty("celeris.physics.engine"))
                 || Boolean.getBoolean("celeris.compatMode")) {
             return "";

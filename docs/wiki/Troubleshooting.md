@@ -8,8 +8,8 @@ Start with the log. Velox writes lines when it starts, and each line says what i
 |---|---|---|
 | `Velox: disabled in config -- items use vanilla physics` | `enabled` is `false`. | Set `enabled = true`, and restart the server. |
 | `Velox: Celeris physics engine unavailable (why) -- items use vanilla physics` | Celeris could not start its physics engine. The text in the brackets says why. | Read the Celeris lines in the log. See the [Celeris troubleshooting page](https://github.com/bichal/Celeris/wiki/Troubleshooting). |
-| `Velox: items simulated by Celeris (java)` | Velox works, with the Java kernel. On Java 21 the line also says what to add. | Add `--enable-preview` on Java 21 for the native kernel. See [Requirements and files](Requirements-and-files). |
-| `Velox: items simulated by Celeris (native-jni-avx2)` | Velox works, with the native kernel. The name in the brackets can differ on your computer. | Nothing. This is the fastest setup. |
+| `Velox: items simulated by Celeris (java)` | Velox works, with the Java kernel. This is the default. | Nothing. The server tick is the same as with the native kernel in our tests. To try the native kernel, add `-Dvelox.nativeKernel=true`. See [Requirements and files](Requirements-and-files). |
+| `Velox: items simulated by Celeris (native-jni-avx2)` | Velox works, with the native kernel (you asked for it with `-Dvelox.nativeKernel=true`). The name in the brackets can differ on your computer. | Nothing. |
 | `Velox: item physics for minecraft:overworld on java (capacity 32768)` | Velox started handling that world. The capacity is the most items it handles there. | Nothing. |
 
 ## Common problems
@@ -34,7 +34,7 @@ Velox is only supported on the versions listed in [Requirements and files](Requi
 
 ### Velox says Celeris is missing
 
-Velox needs Celeris 0.3.1.1 or newer, on the server. Install it, then restart the server.
+Velox needs Celeris 0.3.1.1 or newer, on the server. Without it NeoForge stops the server while it loads mods, with a missing-dependency error, so Velox never gets to write a log line. Install Celeris, then restart the server.
 
 ## Frequently asked questions
 

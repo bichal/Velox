@@ -23,9 +23,9 @@ Every file was checked against vanilla on each version in its row. A test server
 
 ## Java flags
 
-Velox works without flags. It asks Celeris for the native physics kernel, through JNI, which needs no flag. If the native library cannot load, Velox uses the Java kernel and still works. The native kernel steps items about twice as fast, but the server tick is about the same either way: in our tests with 20,000 items the Java, JNI and FFM kernels tie (see [Benchmarks](Benchmarks)). To force the Java kernel, add `-Dceleris.physics.engine=java`.
+Velox works without flags, on Celeris's Java kernel. In our tests with 20,000 items the Java, JNI and FFM kernels tie on the server tick (see [Benchmarks](Benchmarks)), so you do not need native code. To ask Celeris for its native kernel anyway, add `-Dvelox.nativeKernel=true`; it uses JNI, which needs no other flag. If the native library cannot load, Celeris uses the Java kernel and Velox still works. To force the Java kernel even then, add `-Dceleris.physics.engine=java`.
 
-Only the FFM binding needs a flag, and Celeris tries it only if JNI cannot load:
+Only the FFM binding needs a flag, and Celeris tries it only if JNI cannot load (and only when you asked for the native kernel):
 
 | Minecraft | Java | Flag for FFM |
 |---|---|---|

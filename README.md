@@ -37,9 +37,12 @@ Milliseconds per server tick. The budget for 20 ticks per second is 50 ms.
 
 - 🖥️ **20,000 falling items** (Minecraft 1.21.1, dedicated NeoForge server, CI runner, median of 3 runs on 30 Oct 2026):
   **28.0 ms instead of 493.0 ms**, 18× faster. Resting on the ground: **21.3 ms instead of 260.4 ms**, 12× faster.
+  On Minecraft 26.1 (Java 25) the same test gives 12× falling (39.9 ms instead of 488.3 ms) and 9× resting.
   (The normal game moves a lot between runs, so read the factor as good to about 20 %.)
+- ⚠️ **These tests use plain items on solid ground**, with no players, merging or pickup. Items in water, on hoppers or
+  on slabs keep the normal game's speed, so a hopper-heavy farm gains less. Read the numbers as the best case.
 - 🧹 **8,000 resting items**: 8.7 ms instead of 54.9 ms, 6× faster. **2,000 resting items**: 1.3 ms instead of 8.5 ms, 7× faster.
-- ⚙️ **Java, JNI and FFM kernels tie.** Velox runs on any of Celeris's three physics engines and they give the same tick
+- ⚙️ **Java, JNI and FFM kernels tie.** Velox uses the Java kernel by default and runs on any of Celeris's three physics engines and they give the same tick
   to within noise (20,000 falling items: 28.5 ms Java, 28.0 ms JNI, 31.2 ms FFM; the whole physics step is 1–2 % of the
   server thread with a native kernel and about 7 % with the Java one). The gain over the normal game comes from Velox
   skipping Minecraft's per-item work, not from native code.

@@ -22,10 +22,19 @@ public final class Velox {
 
     public static final String MOD_ID = "velox";
     public static final Logger LOGGER = LoggerFactory.getLogger("Velox");
+    /**
+     * Opt-in ({@code -Dvelox.nativeKernel=true}) for Celeris's native kernel. Off by default: in the CI
+     * benchmarks the Java, JNI and FFM kernels give the same server tick, so loading native code buys
+     * nothing measurable. It is a system property because the config file is not loaded yet when this
+     * constructor runs, and the engine is chosen before it is.
+     */
+    public static final String NATIVE_KERNEL_PROPERTY = "velox.nativeKernel";
 
     public Velox(IEventBus modBus, ModContainer container) {
         container.registerConfig(commonConfigType(), VeloxConfig.SPEC);
-        requestNativeKernel();
+        if (Boolean.getBoolean(NATIVE_KERNEL_PROPERTY)) {
+            requestNativeKernel();
+        }
         VeloxEvents.register();
         if (ParityHarness.ENABLED) {
             ParityHarness.register();
@@ -33,9 +42,9 @@ public final class Velox {
     }
 
     /**
-     * Celeris runs its Java kernel unless a mod asks for the native one, and Velox does: it steps
-     * thousands of items in batches, which is where the native kernel is faster. This has to run
-     * before Celeris chooses its engine (the first batch), so it is the first thing the mod does.
+     * Celeris runs its Java kernel unless a mod asks for the native one. Velox asks only when
+     * {@link #NATIVE_KERNEL_PROPERTY} is set. This has to run before Celeris chooses its engine
+     * (the first batch), so it is the first thing the mod does.
      * The player keeps the last word with {@code -Dceleris.physics.engine=java}. Looked up by name
      * so Velox compiles and runs against any Celeris: one from before the opt-in has no such method
      * and already prefers the native kernel.
